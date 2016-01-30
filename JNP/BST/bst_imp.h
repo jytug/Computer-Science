@@ -18,8 +18,15 @@ BST<T>::BST(std::initializer_list<T> l) :
 template <typename T>
 template <typename Iter>
 BST<T>::BST(Iter begin, Iter end) : 
-	m_root(begin == end ? nullptr :
-		(*std::prev(end) + BST(begin, std::prev(end))).m_root) {}
+	BST([&] () -> BST<T> {
+		std::function<BST<T> (BST<T>, Iter, Iter)> build
+			= [&](BST<T> t, Iter begin, Iter end) -> BST<T> {
+			return begin == end ?
+				t :
+				build(t + *begin, std::next(begin), end);
+		};
+		return build(BST<T>(), begin, end);
+	}()) {}
 
 template <typename T>
 BST<T>::BST(T value, BST left, BST right) :
@@ -98,10 +105,10 @@ BST<T> BST<T>::find(T const & t) const {
 
 template <typename T>
 std::size_t BST<T>::size() const {
-	if (empty())
-		return 0;
-	else
-		return left().size() + right().size() + 1;
+	return fold(0,
+		[] (int x, T t) -> int {
+			return x + 1;
+		});
 }
 
 template <typename T>
