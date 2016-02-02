@@ -94,7 +94,7 @@ Acc BST<T>::fold(Acc a, Functor f) const {
 template <typename T>
 BST<T> BST<T>::find(T const & t) const {
 	if (empty())
-		return BST<T>();
+		throw std::logic_error("Element not found!");
 	else if (t > value())
 		return right().find(t);
 	else if (t < value())
