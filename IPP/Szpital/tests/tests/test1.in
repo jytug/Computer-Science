@@ -1,0 +1,11 @@
+NEW_DISEASE_ENTER_DESCRIPTION Kowalski Bardzo ciezka choroba
+NEW_DISEASE_ENTER_DESCRIPTION Nowak Delikatne przeziebienie...
+NEW_DISEASE_COPY_DESCRIPTION Kowalski Nowak
+PRINT_DESCRIPTION Kowalski 2
+PRINT_DESCRIPTION Kowalski 1
+PRINT_DESCRIPTION Nowak 1
+CHANGE_DESCRIPTION Kowalski 2 Przeziebienie z powiklaniami !
+NEW_DISEASE_COPY_DESCRIPTION van_Beethoven Kowalski
+NEW_DISEASE_COPY_DESCRIPTION van_Beethoven Nowak
+PRINT_DESCRIPTION van_Beethoven 1
+PRINT_DESCRIPTION van_Beethoven 2
