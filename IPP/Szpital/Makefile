@@ -1,6 +1,9 @@
 CC = gcc
 
-all: parse structure hospital
+all: helpers parse structure hospital
+
+helpers: helpers.c helpers.h
+	$(CC) -g -c helpers.c
 
 parse: parse.c parse.h structure.h
 	$(CC) -g -c parse.c 
@@ -8,9 +11,9 @@ parse: parse.c parse.h structure.h
 structure: structure.h structure.c
 	$(CC) -g -c structure.c 
 
-hospital: parse.c structure.h hospital.c
+hospital: parse.o structure.o hospital.c
 	$(CC) -g -c hospital.c
-	$(CC) -o hospital parse.o structure.o hospital.o
+	$(CC) -o hospital helpers.o parse.o structure.o hospital.o
 
-clean: parse.o structure.o hospital
-	rm parse.o structure.o hospital.o hospital
+clean: 
+	rm *.o hospital
