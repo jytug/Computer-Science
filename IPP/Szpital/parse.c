@@ -81,12 +81,11 @@ void parse_enter(char *const line) {
 	err = sscanf(line, "%*s %ms %m[^\n]", &name, &desc);
 	if (name == 0 || desc == 0 || err != to_fill) {
 		ignore();
-		check_and_free(name);
-		check_and_free(desc);
 	} else {
 		enter(name, desc);
-	//	printf("insert(%s, %s)\n", name, desc);
 	}
+	check_and_free(name);
+	check_and_free(desc);
 }
 
 void parse_copy(char *const line) {
@@ -107,14 +106,14 @@ void parse_change(char *const line) {
 	char *name = 0, *desc = 0; 
 	const int to_fill = 3;
 	int err;
-	size_t disease_n;
+	size_t disease_n = 0;
 	err = sscanf(line, "%*s %ms %u %m[^\n]", &name, &disease_n, &desc);
 	if (name == 0 || desc == 0 || err != to_fill) {
 		ignore();
-		check_and_free(desc);
 	} else {
 		change(name, disease_n, desc);
 	}
+	check_and_free(desc);
 	check_and_free(name);
 }
 
@@ -122,7 +121,7 @@ void parse_print(char *const line) {
 	char *name = 0, *dummy = 0;
 	const int to_fill = 2;
 	int err;
-	size_t disease_n;
+	size_t disease_n = 0;
 	err = sscanf(line, "%*s %ms %u%ms", &name, &disease_n, &dummy);
 	if (name == 0 || dummy != 0 || err != to_fill)
 		ignore();
@@ -140,7 +139,7 @@ void parse_delete(char *const line) {
 	if (name == 0 || dummy != 0 || err != to_fill)
 		ignore();
 	else
-		printf("delete(%s)\n", name);
+		delete(name);
 	check_and_free(name);
 	check_and_free(dummy);
 }
@@ -150,6 +149,7 @@ void do_the_reading() {
 	while (read_line(&line) != -1) {
 		int cmd = deduce_command(line);		
 		forward_command(cmd, line);
+		write();
 	}
 	check_and_free(line);
 	destroy_structure();

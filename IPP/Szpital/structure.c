@@ -16,12 +16,17 @@ disease *new_disease(char *const desc, const size_t ref_count) {
 	return res;
 }
 
-void remove_disease(disease *d) {
+	/*
+	* Returns -1 if if a disease was freed from memory, 0 otherwise
+	*/
+int remove_disease(disease *d) {
 	if (d->ref_count > 1) {
 		d->ref_count -= 1;
+		return 0;
 	} else {
 		free(d->desc);
 		free(d);
+		return -1;
 	}
 }
 
@@ -40,11 +45,18 @@ void insert_disease(struct d_node **list_ptr, disease *d) {
 	d->ref_count++;
 }
 
-void delete_d_list(struct d_node *list) {
-	if (list != NULL) {
-		delete_d_list(list->next);
-		remove_disease(list->d);
+	/*
+	* Returns the number of diseases
+	* freed during deleting the list
+	*/
+int delete_d_list(struct d_node *list) {
+	if (list == NULL) {
+		return 0;
+	} else {
+		int res = delete_d_list(list->next);
+		res += remove_disease(list->d);
 		free(list);
+		return res;
 	}
 }
 
@@ -64,15 +76,22 @@ struct p_node *find_patient(struct p_node *list, char *const name) {
 	return it;
 }
 
-void insert_patient_disease(struct p_node **list_ptr,
+	/*
+	* Returns:
+	*	0 if the patient was not on the list 
+	*	1 otherwise
+	*/
+int insert_patient_disease(struct p_node **list_ptr,
 		char *const name, disease *dis) {
 	struct p_node *list = find_patient(*list_ptr, name);
 	if (list == NULL) {
 		struct d_node *disease_list = NULL;
 		insert_disease(&disease_list, dis);
 		*list_ptr = new_p_node(name, disease_list, *list_ptr);
+		return 0;
 	} else {
 		insert_disease(&list->disease_list, dis);
+		return 1;
 	}
 }
 
@@ -97,19 +116,20 @@ void write_p_list(struct p_node *list) {
 	}
 }
 
-void copy_description(struct p_node *list,
+	/*
+	* Returns:
+	*	-1 on failure
+	*	0 if the patient named name1 was not on the list
+	*	1 otherwise 
+	*/
+int copy_description(struct p_node **list_ptr,
 		char *const name1, char *const name2) {
-	struct p_node *patient1, *patient2;
-	patient1 = find_patient(list, name1);
-	patient2 = find_patient(list, name2);
-	if (patient1 == NULL || patient2 == NULL) {
-		ignore();
+	struct p_node *patient2;
+	patient2 = find_patient(*list_ptr, name2);
+	if (patient2 == NULL || patient2->disease_list == NULL) {
+		return -1;
 	} else {
-		if (patient1->disease_list == NULL || patient2->disease_list == NULL) {
-			ignore();
-		} else {
-			insert_disease(&patient1->disease_list, patient2->disease_list->d);
-		}
+		return insert_patient_disease(list_ptr, name1, patient2->disease_list->d);
 	}
 }
 
@@ -131,14 +151,22 @@ struct d_node *find_description(struct d_node *list, size_t n) {
 			it = it->next;
 	return it;
 }
-
-void change_description(struct p_node *list, char *name, size_t n, char *desc) {
+	/*
+	* Returns:
+	* 	-1 on failure
+	*	1 otherwise
+	*/
+int change_description(struct p_node *list, char *const name,
+		const size_t n, char *const desc) {
 	struct p_node *patient = find_patient(list, name);
-	if (patient == NULL || patient->disease_list == NULL) {
-		ignore();
+	struct d_node *d;
+	if (patient == NULL || patient->disease_list == NULL ||
+			(d = find_description(patient->disease_list, n)) == NULL) {
+		return -1;
 	} else {
-		struct d_node *it = find_description(patient->disease_list, n);  
-		update_description(it, desc);
+		//struct d_node *it = find_description(patient->disease_list, n);  
+		update_description(d, desc);
+		return 1;
 	}
 }
 
@@ -152,27 +180,54 @@ void print_description(struct p_node *list, char *const name, const size_t n) {
 		puts(dis->d->desc);
 }
 
-void delete_patient(struct p_node *list, char *const name) {
+	/*
+	* Returns the number of diseases freed from the 
+	* memory during deletion (the number of diseases
+	* that belonged only to the specified patient
+	*/
+int delete_patient(struct p_node *list, char *const name) {
+	int res = 0;
 	struct p_node *patient = find_patient(list, name);
-	delete_d_list(patient->disease_list);
-	patient->disease_list = NULL;
+	if (patient != NULL) {
+		res = delete_d_list(patient->disease_list);
+		patient->disease_list = NULL;
+	}
+	return res;
 }
 
 	/*
 	* The following functions are propagated to the ,,parse'' module,
-	* and don't require any knowledge of the data structure	
+	* and don't require any knowledge of the data structure. They allocate 
+	* the memory for the data stored inside the structure and free it if
+	* not needed
 	*/
 void enter(char *const name, char *const desc) {
-	disease *d = new_disease(desc, 0);
-	insert_patient_disease(&global_hospital()->patients, name, d);
+	char *name_copy = copy_string(name),
+		*desc_copy = copy_string(desc);
+	disease *d = new_disease(desc_copy, 0);
+	int err = insert_patient_disease(&global_hospital()->patients,
+			name_copy, d);
+	if (err == 1)
+		free(name_copy);
 }
 
 void copy(char *const name1, char *const name2) {
-	copy_description(global_hospital()->patients, name1, name2);
+	char *name1_copy = copy_string(name1);
+	int err = copy_description(&global_hospital()->patients, name1_copy, name2);
+	if (err == -1) {
+		ignore();
+		free(name1_copy);
+	} else if (err == 1) {
+		free(name1_copy);
+	}
 }
 
 void change(char *const name, const size_t n, char* const desc) {
-	change_description(global_hospital()->patients, name, n, desc);
+	char *desc_copy = copy_string(desc);
+	int err = change_description(global_hospital()->patients,
+			name, n, desc_copy);
+	if (err == -1)
+		free(desc_copy);
 }
 
 void print(char *const name, const size_t n) {
@@ -185,4 +240,9 @@ void delete(char *const name) {
 
 void destroy_structure() {
 	delete_p_list(global_hospital()->patients);
+}
+
+void write() {
+	write_p_list(global_hospital()->patients);
+	printf("\n");
 }
