@@ -2,13 +2,13 @@
 #define _PARSE_H
 
 int read_line(char **);
-int deduce_command(char *const );
-void forward_command(int, char *const );
-void parse_enter(char *const );
-void parse_copy(char *const );
-void parse_change(char *const );
-void parse_print(char *const );
-void parse_delete(char *const );
-void do_the_reading();
+int deduce_command(char *const);
+void forward_command(const int, char *const, const int);
+void parse_enter(char *const, const int);
+void parse_copy(char *const, const int);
+void parse_change(char *const, const int);
+void parse_print(char *const, const int);
+void parse_delete(char *const, const int);
+void do_the_reading(const int);
 
 #endif /*_PARSE_H*/

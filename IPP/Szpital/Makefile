@@ -1,19 +1,24 @@
 CC = gcc
+CCFLAGS = -Wall
 
-all: helpers parse structure hospital
+all: hospital
 
-helpers: helpers.c helpers.h
-	$(CC) -g -c helpers.c
+helpers.o: helpers.c helpers.h
+	$(CC) $(CCFLAGS) -c helpers.c -o $@
 
-parse: parse.c parse.h structure.h
-	$(CC) -g -c parse.c 
+parse.o: parse.c parse.h structure.h helpers.h
+	$(CC) $(CCFLAGS) -c parse.c -o $@
 
-structure: structure.h structure.c
-	$(CC) -g -c structure.c 
+structure.o: structure.h structure.c helpers.h
+	$(CC) $(CCFLAGS) -c structure.c -o $@
 
-hospital: parse.o structure.o hospital.c
-	$(CC) -g -c hospital.c
-	$(CC) -o hospital helpers.o parse.o structure.o hospital.o
+hospital: helpers.o parse.o structure.o hospital.o
 
 clean: 
-	rm *.o hospital
+	rm -rf *.o *.dbg hospital
+
+hospital.dbg: helpers.o parse.o structure.o
+	$(CC) $(CCFLAGS) -o hospital.dbg hospital.c helpers.o parse.o structure.o
+	
+debug: CCFLAGS += -g
+debug: hospital.dbg

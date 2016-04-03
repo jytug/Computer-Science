@@ -25,12 +25,15 @@ typedef struct {
 	size_t descriptions;
 } hospital;
 
-void enter(char *const , char *const);
-void copy(char *const , char *const);
-void change(char *const, const size_t, char *const);
-void print(char *const, const size_t);
+void enter(char *const , char *const, const int);
+void copy(char *const , char *const, const int);
+void change(char *const, const size_t, char *const, const int);
+void print(char *const, const size_t, const int);
+void delete(char *const, const int);
 void destroy_structure();
-void delete(char *const);
+
+#ifdef DEBUG
 void write();
+#endif /*DEBUG*/
 
 #endif /*_STRUCTURE_H*/

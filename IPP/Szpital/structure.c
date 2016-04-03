@@ -4,6 +4,8 @@
 #include "helpers.h"
 #include "structure.h"
 
+#define MAX_STR_LEN 100000
+
 hospital *global_hospital() {
 	static hospital instance;
 	return &instance;
@@ -17,20 +19,19 @@ disease *new_disease(char *const desc, const size_t ref_count) {
 }
 
 	/*
-	* Returns -1 if if a disease was freed from memory, 0 otherwise
+	* Returns 1 if a disease was freed from memory, 0 otherwise
 	*/
 int remove_disease(disease *d) {
 	if (d->ref_count > 1) {
 		d->ref_count -= 1;
 		return 0;
-	} else {
-		free(d->desc);
-		free(d);
-		return -1;
 	}
+	free(d->desc);
+	free(d);
+	return 1;
 }
 
-struct d_node *new_d_node(disease *d, size_t no, struct d_node *next) {
+struct d_node *new_d_node(disease *d, const size_t no, struct d_node *next) {
 	struct d_node *res = malloc(sizeof(struct d_node));
 	res->d = d;
 	res->no = no;
@@ -71,7 +72,7 @@ struct p_node *new_p_node(char *const name, struct d_node *disease_list,
 
 struct p_node *find_patient(struct p_node *list, char *const name) {
 	struct p_node *it = list;
-	while (it != NULL && strcmp(it->name, name) != 0) // TODO strncmp?
+	while (it != NULL && !equal(it->name, name, MAX_STR_LEN))
 		it = it->next;
 	return it;
 }
@@ -104,18 +105,6 @@ void delete_p_list(struct p_node *list) {
 	}
 }
 
-void write_p_list(struct p_node *list) {
-	while (list != NULL) {
-		printf("Patient: %s\n", list->name);
-		struct d_node *dis = list->disease_list;
-		while (dis != NULL) {
-			printf("\t%u. %s\n", dis->no, dis->d->desc);
-			dis = dis->next;
-		}
-		list = list->next;
-	}
-}
-
 	/*
 	* Returns:
 	*	-1 on failure
@@ -133,13 +122,22 @@ int copy_description(struct p_node **list_ptr,
 	}
 }
 
-void update_description(struct d_node *list, char *desc) {
+	/*
+	* Returns:
+	*	-1 on failure
+	*	0 if a disease was freed from the memory
+	*	1 otherwise
+	*/
+int update_description(struct d_node *list, char *desc) {
+	int res;
 	if (list == NULL) {
 		ignore();
+		return -1;
 	} else {
-		remove_disease(list->d);
+		res = remove_disease(list->d);
 		list->d = new_disease(desc, 1);
 	}
+	return 1 - res;
 }
 
 struct d_node *find_description(struct d_node *list, size_t n) {
@@ -154,6 +152,7 @@ struct d_node *find_description(struct d_node *list, size_t n) {
 	/*
 	* Returns:
 	* 	-1 on failure
+	* 	0 if a disease was freed from the memory
 	*	1 otherwise
 	*/
 int change_description(struct p_node *list, char *const name,
@@ -165,8 +164,7 @@ int change_description(struct p_node *list, char *const name,
 		return -1;
 	} else {
 		//struct d_node *it = find_description(patient->disease_list, n);  
-		update_description(d, desc);
-		return 1;
+		return update_description(d, desc);
 	}
 }
 
@@ -184,6 +182,7 @@ void print_description(struct p_node *list, char *const name, const size_t n) {
 	* Returns the number of diseases freed from the 
 	* memory during deletion (the number of diseases
 	* that belonged only to the specified patient
+	* If the patient was not on the list, returns -1
 	*/
 int delete_patient(struct p_node *list, char *const name) {
 	int res = 0;
@@ -191,17 +190,23 @@ int delete_patient(struct p_node *list, char *const name) {
 	if (patient != NULL) {
 		res = delete_d_list(patient->disease_list);
 		patient->disease_list = NULL;
+	} else {
+		return -1;
 	}
 	return res;
 }
 
+void print_err_info(int err_info) {
+	if (err_info)
+		fprintf(stderr, "DESCRIPTIONS: %lu\n", global_hospital()->descriptions);
+}
 	/*
 	* The following functions are propagated to the ,,parse'' module,
 	* and don't require any knowledge of the data structure. They allocate 
 	* the memory for the data stored inside the structure and free it if
 	* not needed
 	*/
-void enter(char *const name, char *const desc) {
+void enter(char *const name, char *const desc, const int err_info) {
 	char *name_copy = copy_string(name),
 		*desc_copy = copy_string(desc);
 	disease *d = new_disease(desc_copy, 0);
@@ -209,40 +214,75 @@ void enter(char *const name, char *const desc) {
 			name_copy, d);
 	if (err == 1)
 		free(name_copy);
+	global_hospital()->descriptions++;
+	ok();
+	print_err_info(err_info);
 }
 
-void copy(char *const name1, char *const name2) {
+void copy(char *const name1, char *const name2, const int err_info) {
 	char *name1_copy = copy_string(name1);
 	int err = copy_description(&global_hospital()->patients, name1_copy, name2);
 	if (err == -1) {
 		ignore();
 		free(name1_copy);
-	} else if (err == 1) {
-		free(name1_copy);
+	} else {
+		ok();
+		if (err == 1)
+			free(name1_copy);
 	}
+	print_err_info(err_info);
 }
 
-void change(char *const name, const size_t n, char* const desc) {
+void change(char *const name, const size_t n, char* const desc,
+		const int err_info) {
 	char *desc_copy = copy_string(desc);
 	int err = change_description(global_hospital()->patients,
 			name, n, desc_copy);
-	if (err == -1)
+	if (err == -1) {
+		ignore();
 		free(desc_copy);
+	} else {
+		global_hospital()->descriptions += err;
+		ok();
+	}
+	print_err_info(err_info);
 }
 
-void print(char *const name, const size_t n) {
+void print(char *const name, const size_t n, const int err_info) {
 	print_description(global_hospital()->patients, name, n);
+	print_err_info(err_info);
 }
 
-void delete(char *const name) {
-	delete_patient(global_hospital()->patients, name);
+void delete(char *const name, const int err_info) {
+	int err = delete_patient(global_hospital()->patients, name);
+	if (err == -1) {
+		ignore();
+	} else {
+		global_hospital()->descriptions -= err;
+		ok();
+	}
+	print_err_info(err_info);
 }
 
 void destroy_structure() {
 	delete_p_list(global_hospital()->patients);
 }
 
+#ifdef DEBUG
+void write_p_list(struct p_node *list) {
+	while (list != NULL) {
+		printf("Patient: %s\n", list->name);
+		struct d_node *dis = list->disease_list;
+		while (dis != NULL) {
+			printf("\t%u. %s\n", dis->no, dis->d->desc);
+			dis = dis->next;
+		}
+		list = list->next;
+	}
+}
+
 void write() {
 	write_p_list(global_hospital()->patients);
 	printf("\n");
 }
+#endif /*DEBUG*/
