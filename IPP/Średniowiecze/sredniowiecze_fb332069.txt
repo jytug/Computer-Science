@@ -1,0 +1,14 @@
+Rozwiązanie zadania znajduje się w repozytorium
+https://git.mimuw.edu.pl/IPP-fb332069.git
+w gałęzi master. Poniżej informacja dotycząca commita
+(wynik polecenia git log | head -5)
+
+
+
+commit 416ad93336c6e81422f34817f78587470657108f
+Author: Filip Binkiewicz <filip.binkiewicz@gmail.com>
+Date:   Sat May 14 21:36:03 2016 +0200
+
+    All tests passed. Documentation written
+
+Filip Binkiewicz
