@@ -1,6 +1,7 @@
 package gra;
 
-public interface Postać {
+public interface Postać
+{
 
     int dajWysokość();
 

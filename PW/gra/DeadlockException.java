@@ -1,6 +1,7 @@
 package gra;
 
 @SuppressWarnings("serial")
-public class DeadlockException extends Exception {
+public class DeadlockException extends Exception
+{
 
 }
