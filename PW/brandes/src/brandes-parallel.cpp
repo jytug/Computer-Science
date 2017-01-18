@@ -28,7 +28,7 @@ void count_betweenness(const digraph<int>& network,
     std::unordered_map<int, std::list<int> > predecessors;
     std::unordered_map<int, int> shortest_paths;
     std::unordered_map<int, int> distance;
-    std::unordered_map<int, int> delta;
+    std::unordered_map<int, double> delta;
 
     for (const auto& _w : network.getVertices()) {
       int w = _w.first;
@@ -59,7 +59,8 @@ void count_betweenness(const digraph<int>& network,
     while (!S.empty()) {
       int w = S.top(); S.pop();
       for (const auto& v : predecessors[w])
-        delta[v] += (shortest_paths[v] / shortest_paths[w]) * (1 + delta[w]);
+        delta[v] += ((double)shortest_paths[v] / (double)shortest_paths[w]) 
+            * (1 + delta[w]);
       if (w != s) {
         mut.lock();
         betweenness[w] += delta[w];
